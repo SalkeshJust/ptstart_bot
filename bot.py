@@ -173,9 +173,8 @@ def findEmails (update: Update, context):
     global write_to_db
     user_input = update.message.text # Получаем текст, содержащий(или нет) имейлы
     logging.info('Получено сообщение для поиска почт')
-    emailRegex = re.compile(r"\b [a-zA-Z0-9._%+-]+(?<!\.\.)@[a-zA-Z0-9.-]+(?<!]+(?<!\.)\.[a-zA-Z]{2,}\b")
-
-    emailList = emailRegex.findall(user_input) # Ищем имейлы
+    emailRegex = r"\b[a-zA-Z0-9._%+-]+(?<!\.\.)@[a-zA-Z0-9.-]+(?<!\.)\.[a-zA-Z]{2,}\b"
+    emailList=re.findall(emailRegex, ' '+user_input)
 
     if not emailList: # Обрабатываем случай, когда имейлов нет
         update.message.reply_text('Почты не найдены')
