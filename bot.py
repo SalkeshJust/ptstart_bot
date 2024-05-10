@@ -313,7 +313,7 @@ def getServices (update: Update, context):
 
 def getReplLogs (update: Update, context):
     logging.info('Начало работы get_repl_logs')
-    data = execCommand('cat /var/log/postgresql/postgresql-15-main.log | tail -n 5')
+    data = execCommand('cat /var/log/postgresql/postgresql-12-main.log | tail -n 5')
     update.message.reply_text(data) # Отправляем отформатированные данные пользователю
     logging.info('Конец работы get_repl_logs')
     return ConversationHandler.END
