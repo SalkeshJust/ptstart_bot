@@ -71,6 +71,40 @@ def connectDB(update: Update, command):
                                 database=dbname)
         cursor = connection.cursor()
         cursor.execute("CREATE TABLE IF NOT EXISTS Emails(Email_id SERIAL, Email VARCHAR(225));")
+def connectDB(dbuser, dbpass, dbhost, dbport, dbname):
+    print(dbhost)
+    connection = psycopg2.connect(user=dbuser,
+                            password=dbpass,
+                            host=dbhost,
+                            port=dbport,
+                            database=dbname)
+    return connection
+
+def workDB(update: Update, command):
+    connection = None
+    dbuser = os.getenv('DB_USER')
+    dbpass = os.getenv('DB_PASSWORD')
+    dbhost = os.getenv('DB_HOST')
+    dbport = os.getenv('DB_PORT')
+    dbname = os.getenv('DB_DATABASE')
+    try:
+        connection = connectDB(dbuser,
+                                dbpass,
+                                dbhost,
+                                dbport,
+                                dbname)
+
+    except (Exception, Error):
+        dbuser = os.getenv('DB_REPL_USER')
+        dbpass = os.getenv('DB_REPL_PASSWORD')
+        dbhost = os.getenv('DB_REPL_HOST')
+        dbport = os.getenv('DB_REPL_PORT')
+        connection = connectDB(dbuser,
+                                dbpass,
+                                dbhost,
+                                dbport,
+                                dbname)
+    try:
         connection.commit()
         cursor = connection.cursor()
         cursor.execute("CREATE TABLE IF NOT EXISTS PhoneNumbers(PhoneNumber_id SERIAL, PhoneNumber VARCHAR(20));")
@@ -154,7 +188,7 @@ def findEmails (update: Update, context):
     global write_to_db
     user_input = update.message.text # Получаем текст, содержащий(или нет) имейлы
     logging.info('Получено сообщение для поиска почт')
-    emailRegex = re.compile(r'\w+@\w+.\w+')
+    emailRegex = re.compile(r"\b [a-zA-Z0-9._%+-]+(?<!\.\.)@[a-zA-Z0-9.-]+(?<!]+(?<!\.)\.[a-zA-Z]{2,}\b")
 
     emailList = emailRegex.findall(user_input) # Ищем имейлы
 
@@ -301,13 +335,13 @@ def getReplLogs (update: Update, context):
 
 def getEmails (update: Update, context):
     logging.info('Начало работы get_emails')
-    connectDB(update, "SELECT * FROM Emails;")
+    workDB(update, "SELECT * FROM Emails;")
     logging.info('Конец работы get_emails')
     return ConversationHandler.END
 
 def getPhoneNumbers (update: Update, context):
     logging.info('Начало работы get_emails')
-    connectDB(update, "SELECT * FROM PhoneNumbers;")
+    workDB(update, "SELECT * FROM PhoneNumbers;")
     logging.info('Конец работы get_emails')
     return ConversationHandler.END
 
@@ -321,7 +355,7 @@ def writePhoneNumbers(update: Update, context):
                 break
             command += '(\''+str(write_to_db[i])+'\'), '
         
-        connectDB(update, command)
+        workDB(update, command)
         update.message.reply_text("Данные успешно загружены")
     return ConversationHandler.END
 
@@ -335,7 +369,7 @@ def writeEmails(update: Update, context):
                 break
             command += '(\''+str(write_to_db[i])+'\'), '
         
-        connectDB(update, command)
+        workDB(update, command)
         update.message.reply_text("Данные успешно загружены")
     return ConversationHandler.END
 
