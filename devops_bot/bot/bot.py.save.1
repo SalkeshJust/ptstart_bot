@@ -56,38 +56,19 @@ def insertDB(cursor, command):
     logging.info("Команда успешно выполнена")
 
 
-def connectDB(dbuser, dbpass, dbhost, dbport, dbname):
-    connection = psycopg2.connect(user=dbuser,
-                            password=dbpass,
-                            host=dbhost,
-                            port=dbport, 
-                            database=dbname)
-    return connection
-def workDB(update: Update, command):
+def connectDB(update: Update, command):
     connection = None
-    dbuser = os.getenv('DB_USER')
-    dbpass = os.getenv('DB_PASSWORD')
-    dbhost = os.getenv('DB_HOST')
-    dbport = os.getenv('DB_PORT')
-    dbname = os.getenv('DB_DATABASE')
     try:
-        connection = connectDB(dbuser,
-                                dbpass,
-                                dbhost,
-                                dbport,
-                                dbname)
-
-    except (Exception, Error):
-        dbuser = os.getenv('DB_REPL_USER')
-        dbpass = os.getenv('DB_REPL_PASSWORD')
-        dbhost = os.getenv('DB_REPL_HOST')
-        dbport = os.getenv('DB_REPL_PORT')
-        connection = connectDB(dbuser,
-                                dbpass,
-                                dbhost,
-                                dbport,
-                                dbname)
-    try:
+        dbuser = os.getenv('DB_USER')
+        dbpass = os.getenv('DB_PASSWORD')
+        dbhost = os.getenv('DB_HOST')
+        dbport = os.getenv('DB_PORT')
+        dbname = os.getenv('DB_DATABASE')
+        connection = psycopg2.connect(user=dbuser,
+                                password=dbpass,
+                                host=dbhost,
+                                port=dbport, 
+                                database=dbname)
         cursor = connection.cursor()
         cursor.execute("CREATE TABLE IF NOT EXISTS Emails(Email_id SERIAL, Email VARCHAR(225));")
         connection.commit()
@@ -313,20 +294,20 @@ def getServices (update: Update, context):
 
 def getReplLogs (update: Update, context):
     logging.info('Начало работы get_repl_logs')
-    data = execCommand('docker logs db_repl_image_ --tail 10')
+    data = execCommand('cat /var/log/postgresql/postgresql-15-main.log | tail -n 5')
     update.message.reply_text(data) # Отправляем отформатированные данные пользователю
     logging.info('Конец работы get_repl_logs')
     return ConversationHandler.END
 
 def getEmails (update: Update, context):
     logging.info('Начало работы get_emails')
-    workDB(update, "SELECT * FROM Emails;")
+    connectDB(update, "SELECT * FROM Emails;")
     logging.info('Конец работы get_emails')
     return ConversationHandler.END
 
 def getPhoneNumbers (update: Update, context):
     logging.info('Начало работы get_emails')
-    workDB(update, "SELECT * FROM PhoneNumbers;")
+    connectDB(update, "SELECT * FROM PhoneNumbers;")
     logging.info('Конец работы get_emails')
     return ConversationHandler.END
 
@@ -340,7 +321,7 @@ def writePhoneNumbers(update: Update, context):
                 break
             command += '(\''+str(write_to_db[i])+'\'), '
         
-        workDB(update, command)
+        connectDB(update, command)
         update.message.reply_text("Данные успешно загружены")
     return ConversationHandler.END
 
@@ -354,7 +335,7 @@ def writeEmails(update: Update, context):
                 break
             command += '(\''+str(write_to_db[i])+'\'), '
         
-        workDB(update, command)
+        connectDB(update, command)
         update.message.reply_text("Данные успешно загружены")
     return ConversationHandler.END
 
