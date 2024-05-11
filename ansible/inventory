@@ -1,0 +1,4 @@
+db_image ansible_host=192.168.31.120 ansible_user=ansible ansible_password=ansible
+db_repl_image ansible_host=192.168.31.180 ansible_user=ansible ansible_password=Qq123456
+tg_bot ansible_host=192.168.31.120 ansible_user=ansible ansible_password=ansible
+

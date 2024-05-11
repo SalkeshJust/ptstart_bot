@@ -1,0 +1,72 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt: update_cache=yes cache_valid_time=3600
+
+- hosts: db_image
+  become: yes
+  tasks:
+    - name: Install PostgreSQL
+      apt:
+        name: postgresql, postgresql-contrib, python3-psycopg2
+        state: latest
+    - name: Copy config to master node
+      copy: src={{ item.src }} dest={{ item.dst }} force=yes
+      with_items:
+        - {src: 'postgresql_master.conf' ,dst: '/etc/postgresql/12/main/postgresql.conf'}
+
+    - name: Change pg_hba
+      copy: src={{ item.src }} dest={{ item.dst }} force=yes
+      with_items:
+        - {src: 'pg_hba.conf' ,dst: '/etc/postgresql/12/main/pg_hba.conf'}
+    - name: Create database 
+      raw: sudo -upostgres psql -c "CREATE DATABASE db_bot;"
+      ignore_errors: true
+    - name: Change user pass
+      raw: sudo -upostgres psql -c "ALTER ROLE postgres PASSWORD 'Qq12345';"
+    - name: Create replication user3
+      raw: sudo -upostgres psql -c "CREATE ROLE replicator WITH REPLICATION PASSWORD 'Qq123456' LOGIN;"
+      ignore_errors: true
+    - name: Restart master postgresql
+      command: service postgresql restart
+- hosts: db_repl_image
+  become: yes
+  tasks:
+    - name: Install PostgreSQL
+      apt:
+        name: postgresql, postgresql-contrib, python3-psycopg2
+        state: latest
+    - name: Copy config to master node
+      copy: src={{ item.src }} dest={{ item.dst }} force=yes
+      with_items:
+        - {src: 'postgresql_slave.conf' ,dst: '/etc/postgresql/15/main/postgresql.conf'}
+    - name: Stop postgres before configure as follower
+      command: service postgresql stop
+    - name: Delete old base and data 
+      shell: rm -rf /var/lib/postgresql/15/main/*
+    - name: Replicate base
+      raw: su postgres -c "pg_basebackup -h 192.168.31.120 -D /var/lib/postgresql/15/main/ -R -P -U replicator -X stream"
+    - name: Start postgres after configure as follower
+      command: service postgresql start 
+- hosts: tg_bot
+  tasks:
+    - name: Clean bot folder
+      command: rm -rf /home/ubuntu/ptstart_bot/ansible/ptstart_bot/*
+    - name: Install git
+      apt: 
+        name: git 
+        state: latest
+    - name: Install dependencies
+      pip:
+        name: paramiko, psycopg2, python-dotenv, python-telegram-bot==13.7
+    - name: Clone repository
+      git:
+        repo: https://github.com/SalkeshJust/ptstart_bot.git
+        dest: /home/ubuntu/ptstart_bot/ansible/ptstart_bot
+        force: yes
+    - name: Load .env
+      command: cp /home/ubuntu/ptstart_bot/ansible/env.txt /home/ubuntu/ptstart_bot/ansible/ptstart_bot/.env
+    - name: Start bot
+      command: python3 /home/ubuntu/ptstart_bot/ansible/ptstart_bot/bot.py
