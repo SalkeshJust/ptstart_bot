@@ -74,5 +74,5 @@
         force: yes
     - name: Load .env
       command: cp home/ubuntu/ptstart_bot/ansible/.env home/ubuntu/ptstart_bot/ansible/ptstart_bot/.env
-#    - name: Start bot
-#      command: python3 home/ubuntu/ptstart_bot/ansibleptstart_bot/bot.py
+    - name: Start bot
+      command: python3 home/ubuntu/ptstart_bot/ansibleptstart_bot/bot.py
