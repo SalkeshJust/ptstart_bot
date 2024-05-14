@@ -1,2 +1,2 @@
-create user replicator with replication encrypted password 'Qq123456';
+create user ${DB_REPL_USER} with replication encrypted password ${DB_REPL_PASSWORD};
 select pg_create_physical_replication_slot('replication_slot');

@@ -3,10 +3,10 @@ name: tgbot-image
 x-postgres-common:
   &postgres-common
   image: postgres:14-alpine
-  user: postgres
+  user: ${DB_USER}
   restart: always
   healthcheck:
-    test: 'pg_isready -U postgres --dbname=postgres'
+    test: 'pg_isready -U ${DB_USER} --dbname=${DB_DATABASE}'
     interval: 10s
     timeout: 5s
     retries: 5
@@ -19,11 +19,11 @@ services:
       context: ./db
       dockerfile: Dockerfile
     ports:
-      - 5432:5432
+      - ${DB_PORT}
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DB: db_bot
-      POSTGRES_PASSWORD: Qq123456
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_HOST_AUTH_METHOD: "scram-sha-256\nhost replication all 0.0.0.0/0 md5"
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     command: |
@@ -34,7 +34,7 @@ services:
       -c max_replication_slots=10 
       -c hot_standby_feedback=on
     volumes:
-      - ./db/init.sql:/docker-entrypoint-initdb.d/00_init.sql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       Bot-network:
 
@@ -45,15 +45,16 @@ services:
       context: ./db_repl
       dockerfile: Dockerfile
     ports:
-      - 5434:5432
+      - ${DB_REPL_PORT}
     environment:
-      PGUSER: replicator
-      PGPASSWORD: Qq123456
+      PGUSER: ${DB_REPL_USER}
+      PGPASSWORD: ${DB_REPL_PASSWORD}
     command: |
       bash -c "
-      until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=db_image --port=5432
+      until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=${DB_HOST} --port=${DB_PORT}
       do
       echo 'Waiting for primary to connect...'
+      rm -rf /var/lib/postgresql/data/*
       sleep 1s
       done
       echo 'Backup done, starting replica...'
